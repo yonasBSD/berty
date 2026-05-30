@@ -40,6 +40,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 			config: {
 				usesNonExemptEncryption: false,
 			},
+			infoPlist: {
+				NSPhotoLibraryUsageDescription:
+					"Berty needs access to your photo library to let you share images in conversations.",
+			},
 		},
 		android: {
 			adaptiveIcon: {
