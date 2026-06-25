@@ -1,7 +1,7 @@
 import { FlashList } from '@shopify/flash-list'
 import Long from 'long'
 import moment from 'moment'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import {
 	ActivityIndicator,
 	ActivityIndicatorProps,
@@ -15,6 +15,7 @@ import {
 
 import beapi from '@berty/api'
 import { useStyles } from '@berty/contexts/styles'
+import { GRPCError } from '@berty/grpc-bridge'
 import { WelshMessengerServiceClient } from '@berty/grpc-bridge/welsh-clients.gen'
 import {
 	useConversationInteractions,
@@ -110,15 +111,26 @@ const fetchMore = async ({
 
 	setFetchingFrom(refCid || '')
 
-	return client
-		?.conversationLoad({
+	try {
+		await client?.conversationLoad({
 			options: {
 				amount: 50,
 				conversationPk: convPk,
 				refCid: refCid,
 			},
 		})
-		.catch(() => setFetchedFirst(true))
+	} catch (err) {
+		// ErrNotFound means we reached the start of the conversation; any other error
+		// is a real failure, so keep paging enabled and surface it for retry.
+		if ((err as GRPCError).Code === beapi.errcode.ErrCode.ErrNotFound) {
+			setFetchedFirst(true)
+		} else {
+			console.warn('failed to load older interactions:', err)
+		}
+	} finally {
+		// Always clear the in-flight marker so the spinner stops once the load settles.
+		setFetchingFrom(null)
+	}
 }
 
 export const MessageList: React.FC<{
@@ -146,7 +158,6 @@ export const MessageList: React.FC<{
 				? InfosMultiMember
 				: NoopComponent
 
-		const initialScrollIndex = undefined
 		const flashListRef = React.useRef<FlashList<ParsedInteraction> | null>(null)
 
 		const handleScrollToCid = useCallback(
@@ -160,7 +171,8 @@ export const MessageList: React.FC<{
 
 		const renderItem = useCallback(
 			({ item, index }) => (
-				<>
+				// Flipped back upright; see styles.invertedList.
+				<View style={styles.invertedCell}>
 					{index > 0 && <DateSeparator current={item} next={messages[index - 1]} />}
 					<Message
 						inte={item}
@@ -171,7 +183,7 @@ export const MessageList: React.FC<{
 						nextMessage={index > 0 ? messages[index - 1] : undefined}
 						scrollToCid={handleScrollToCid}
 					/>
-				</>
+				</View>
 			),
 			[id, conversation?.type, members, messages, handleScrollToCid],
 		)
@@ -235,14 +247,6 @@ export const MessageList: React.FC<{
 			[colors],
 		)
 
-		useEffect(() => {
-			return () => {
-				if (fetchingFrom !== oldestMessage?.cid) {
-					setFetchingFrom(null)
-				}
-			}
-		}, [fetchingFrom, oldestMessage?.cid])
-
 		return (
 			<View style={styles.container}>
 				{isLoadingMore && (
@@ -255,23 +259,25 @@ export const MessageList: React.FC<{
 						<MemberBar convId={id} />
 					</View>
 				) : null}
+				{/* Flipped to emulate inversion; cells flip back (styles.invertedList). */}
+				<View style={[flex.tiny, styles.invertedList]}>
 				<FlashList
 					overScrollMode='never'
-					initialScrollIndex={initialScrollIndex}
 					style={style}
 					contentContainerStyle={contentContainerStyle}
 					ref={flashListRef}
 					keyboardDismissMode='on-drag'
 					data={messages}
-					inverted
+					// Follow new messages (data index 0) without needing a touch.
+					maintainVisibleContentPosition={{ autoscrollToTopThreshold: 100 }}
 					onEndReached={!isLoadingMore ? fetchMoreCB : null}
 					onEndReachedThreshold={3}
 					keyExtractor={keyExtractor}
 					refreshing={fetchingFrom !== null}
 					ListFooterComponent={listFooterComponent}
+					ListFooterComponentStyle={styles.invertedCell}
 					renderItem={renderItem}
 					onViewableItemsChanged={__DEV__ ? undefined : updateStickyDateCB}
-					estimatedItemSize={50}
 					onScrollEndDrag={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
 						if (isGroup) {
 							if (event.nativeEvent.velocity?.y === 0) {
@@ -284,6 +290,7 @@ export const MessageList: React.FC<{
 					onScrollBeginDrag={handleScrollBeginDrag}
 					onMomentumScrollEnd={isGroup ? handleScrollEndDrag : undefined}
 				/>
+				</View>
 			</View>
 		)
 	},
@@ -311,5 +318,12 @@ const styles = StyleSheet.create({
 	},
 	container: {
 		flex: 1,
+	},
+	// Emulates FlashList v2's removed `inverted` prop: flip the list, flip cells back.
+	invertedList: {
+		transform: [{ scaleY: -1 }],
+	},
+	invertedCell: {
+		transform: [{ scaleY: -1 }],
 	},
 })

@@ -1,7 +1,8 @@
 import { Layout } from '@ui-kitten/components'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Platform, ScrollView, StatusBar, View } from 'react-native'
+import { StatusBar } from 'expo-status-bar'
+import { Platform, ScrollView, View } from 'react-native'
 import * as DocumentPicker from 'expo-document-picker'
 import RNFS from 'react-native-fs'
 import * as Notifications from "expo-notifications";
@@ -23,6 +24,7 @@ import {
 	setTheme,
 } from '@berty/redux/reducers/theme.reducer'
 import { createAndSaveFile, getPath } from '@berty/utils/react-native/file-system'
+import { useTopInset } from '@berty/utils/react-native/useTopInset'
 
 import { ThemeColorName } from './components/ThemeColorName'
 
@@ -167,13 +169,11 @@ const BodyThemeEditor: React.FC<{ openModal: () => void }> = ({ openModal }) => 
 export const ThemeEditor: ScreenFC<'Settings.ThemeEditor'> = () => {
 	const [isModal, setIsModal] = React.useState<boolean>(false)
 	const colors = useThemeColor()
+	const topInset = useTopInset()
 
 	return (
-		<Layout style={{ backgroundColor: colors['main-background'], flex: 1 }}>
-			<StatusBar
-				backgroundColor={colors['alt-secondary-background-header']}
-				barStyle='light-content'
-			/>
+		<Layout style={{ backgroundColor: colors['main-background'], flex: 1, paddingTop: topInset }}>
+			<StatusBar style='light' />
 			<ScrollView bounces={false}>
 				<BodyThemeEditor openModal={() => setIsModal(true)} />
 			</ScrollView>

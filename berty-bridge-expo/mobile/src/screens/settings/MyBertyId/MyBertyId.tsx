@@ -1,7 +1,8 @@
 import { Layout, Icon } from '@ui-kitten/components'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { View, TouchableOpacity, StatusBar } from 'react-native'
+import { StatusBar } from 'expo-status-bar'
+import { View, TouchableOpacity } from 'react-native'
 import QRCode from 'react-native-qrcode-svg'
 
 import logo from '@berty/assets/images/1_berty_picto.png'
@@ -14,6 +15,7 @@ import { useStyles } from '@berty/contexts/styles'
 import { useAccount, useStylesBertyId, useThemeColor } from '@berty/hooks'
 import { ScreenFC } from '@berty/navigation'
 import { shareBertyID } from '@berty/utils/react-native/share'
+import { useTopInset } from '@berty/utils/react-native/useTopInset'
 
 //
 // Settings My Berty ID Vue
@@ -185,10 +187,11 @@ const MyBertyIdComponent: React.FC = () => {
 
 export const MyBertyId: ScreenFC<'Settings.MyBertyId'> = () => {
 	const colors = useThemeColor()
+	const topInset = useTopInset()
 
 	return (
-		<Layout style={{ backgroundColor: colors['background-header'], flex: 1, minHeight: '100%' }}>
-			<StatusBar backgroundColor={colors['background-header']} barStyle='light-content' />
+		<Layout style={{ backgroundColor: colors['background-header'], flex: 1, minHeight: '100%', paddingTop: topInset }}>
+			<StatusBar style='light' />
 			<MyBertyIdComponent />
 		</Layout>
 	)

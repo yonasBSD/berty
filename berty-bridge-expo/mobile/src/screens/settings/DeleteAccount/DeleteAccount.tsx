@@ -2,13 +2,15 @@ import { useNavigation as useReactNavigation } from '@react-navigation/core'
 import { Layout } from '@ui-kitten/components'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { View, StatusBar, Vibration } from 'react-native'
+import { StatusBar } from 'expo-status-bar'
+import { View, Vibration } from 'react-native'
 
 import { ErrorCard, SmallInput } from '@berty/components'
 import { UnifiedText } from '@berty/components/shared-components/UnifiedText'
 import { useStyles } from '@berty/contexts/styles'
 import { useThemeColor, useDeletingAccountAfterClosing } from '@berty/hooks'
 import { ScreenFC } from '@berty/navigation'
+import { useTopInset } from '@berty/utils/react-native/useTopInset'
 
 export const DeleteAccount: ScreenFC<'Settings.DeleteAccount'> = () => {
 	const { padding, margin } = useStyles()
@@ -18,13 +20,14 @@ export const DeleteAccount: ScreenFC<'Settings.DeleteAccount'> = () => {
 	const { t } = useTranslation()
 	const deletingAccountAfterClosing = useDeletingAccountAfterClosing()
 	const navigation = useReactNavigation()
+	const topInset = useTopInset()
 
 	// this is the translated string (of "delete"), that we have to compare with the input
 	const DELETE_STR = t('settings.delete-account.delete-button').toLowerCase()
 
 	return (
-		<View style={{ backgroundColor: colors['secondary-background-header'], minHeight: '100%' }}>
-			<StatusBar backgroundColor={colors['secondary-background-header']} barStyle='light-content' />
+		<View style={{ backgroundColor: colors['secondary-background-header'], minHeight: '100%', paddingTop: topInset }}>
+			<StatusBar style='light' />
 			<ErrorCard
 				title={t('settings.delete-account.title')}
 				description={t('settings.delete-account.first-desc')}

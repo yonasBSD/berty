@@ -78,26 +78,40 @@ const AltBackgroundHeaderScreenOptions: (
 	}
 }
 
+// Expo dev-client launch URLs (Metro connection), not Berty deep links: ignore them.
+const isExpoDevClientUrl = (url: string) =>
+	url.includes('expo-development-client') || url.startsWith('exp://')
+
+// Process the persisted launch URL once; DeepLinkBridge mounts on every screen, so
+// re-reading it would loop (navigate -> mount -> re-read -> navigate).
+let initialUrlHandled = false
+
 const DeepLinkBridge: React.FC = React.memo(() => {
 	const navigation = useNavigation<NavigationProp<ScreensParams>>()
 	const dispatch = useAppDispatch()
 	const handledLink = useSelector(selectHandledLink)
 
 	useEffect(() => {
-		const loadLink = async () => {
-			const linkingUrl = await Linking.getInitialURL()
-			if (linkingUrl) {
-				dispatch(setHandledLink(linkingUrl))
-			}
-
-			const handleOpenUrl = (event: { url: string }) => {
-				dispatch(setHandledLink(event.url))
-			}
-
-			Linking.addEventListener('url', handleOpenUrl)
+		if (!initialUrlHandled) {
+			initialUrlHandled = true
+			Linking.getInitialURL()
+				.then(linkingUrl => {
+					if (linkingUrl && !isExpoDevClientUrl(linkingUrl)) {
+						dispatch(setHandledLink(linkingUrl))
+					}
+				})
+				.catch(err => console.warn('failed to get initial URL', err))
 		}
 
-		loadLink()
+		const handleOpenUrl = (event: { url: string }) => {
+			if (isExpoDevClientUrl(event.url)) {
+				return
+			}
+			dispatch(setHandledLink(event.url))
+		}
+
+		const sub = Linking.addEventListener('url', handleOpenUrl)
+		return () => sub.remove()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
@@ -178,7 +192,8 @@ export const Navigation: React.FC = React.memo(() => {
 				component={Components.Account.SelectNode}
 				options={{
 					headerShown: false,
-					presentation: 'formSheet',
+					// Full-screen card on both: a root formSheet renders empty on Android and jumps on iOS.
+					presentation: 'card',
 				}}
 			/>
 			<NavigationStack.Screen
@@ -661,7 +676,8 @@ export const Navigation: React.FC = React.memo(() => {
 				component={Components.Settings.Permissions}
 				options={{
 					headerShown: false,
-					presentation: 'formSheet',
+					// fullScreenModal uses the fixed native height; a formSheet sizes to JS layout and jumps.
+					presentation: 'fullScreenModal',
 				}}
 			/>
 			<NavigationStack.Screen

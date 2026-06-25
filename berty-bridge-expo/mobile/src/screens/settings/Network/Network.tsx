@@ -1,4 +1,3 @@
-import { useHeaderHeight } from '@react-navigation/elements'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { ScrollView, View, Platform } from 'react-native'
@@ -22,6 +21,7 @@ import {
 } from '@berty/redux/reducers/networkConfig.reducer'
 import { checkProximityPermission } from '@berty/utils/permissions/checkPermissions'
 import { IOSOnlyKeyboardAvoidingView } from '@berty/utils/react-native/keyboardAvoiding'
+import { useTopInset } from '@berty/utils/react-native/useTopInset'
 import * as testIDs from '@berty/utils/testing/testIDs.json'
 
 const Proximity: React.FC = () => {
@@ -131,12 +131,13 @@ const NetworkBody: React.FC = () => {
 	const { t } = useTranslation()
 	const dispatch = useDispatch()
 	const networkConfig = useSelector(selectEditedNetworkConfig)
+	const topInset = useTopInset()
 
 	return (
 		<ScrollView
 			bounces={false}
 			style={{ backgroundColor: colors['secondary-background']}}
-			contentContainerStyle={{ paddingBottom: 12, backgroundColor: colors['secondary-background'] }}
+			contentContainerStyle={{ paddingTop: topInset, paddingBottom: 12, backgroundColor: colors['secondary-background'] }}
 			showsVerticalScrollIndicator={false}
 		>
 			<Proximity />
@@ -170,15 +171,10 @@ const NetworkBody: React.FC = () => {
 }
 
 export const Network: ScreenFC<'Settings.Network'> = () => {
-	const headerHeight = useHeaderHeight()
 	useSyncNetworkConfigOnScreenRemoved()
 
 	return (
-		<IOSOnlyKeyboardAvoidingView
-			behavior='padding'
-			keyboardVerticalOffset={headerHeight}
-			style={[{ flex: 1 }]}
-		>
+		<IOSOnlyKeyboardAvoidingView style={[{ flex: 1 }]}>
 			<NetworkBody />
 		</IOSOnlyKeyboardAvoidingView>
 	)
